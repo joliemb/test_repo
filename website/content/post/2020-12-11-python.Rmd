@@ -1,0 +1,15 @@
+---
+title: Python
+author: ''
+date: '2020-12-11'
+slug: python
+categories: []
+tags: []
+description: ''
+---
+ 
+la la la
+
+[Link to project 1](/project/project1/)
+
+[Link to google](https://www.google.com)

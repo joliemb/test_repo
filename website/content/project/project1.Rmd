@@ -1,0 +1,186 @@
+---
+title: "Educational Opportunity in Relation to Parental Income"
+author: "Jolie Bourek"
+date: "10/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+```
+
+## Introduction 
+
+  My project is based on the two datasets “Cross-Sectional Statistics by College Tier and Parent Income Percentile” and “Cross-Sectional Statistics on Children’s Income Distributions by College” produced by opportunity insights research. The datasets were obtained by pulling random samples of students from de-identified federal public tax records in the 1980, 1981, and 1982 birth cohorts. This data was of interest to me because the opportunity gap in our nation between high and low income students is still measurable. I wanted to explore the relationships between parental income to educational opportunity and later earnings. I expect to see a trend of students with parents in higher income percentiles attending more elite colleges, and attending college more frequently than those from bottom income percentiles. I also expect students who attended higher status colleges to earn more than students who attended less prestigious colleges. 
+Due to the large number of variables in each data set, tables of the variables are linked below taken from the website that conducted the research. 
+https://opportunityinsights.org/wp-content/uploads/2018/04/Codebook-MRC-Table-6.pdf
+https://opportunityinsights.org/wp-content/uploads/2018/04/Codebook-MRC-Table-7.pdf
+
+##Joining/Rearranging 
+
+```{r}
+parentincome <- read_csv("https://opportunityinsights.org//wp-content/uploads/2018/04/mrc_table6.csv")
+childincome <- read_csv("https://opportunityinsights.org//wp-content/uploads/2018/04/mrc_table7.csv")
+income <- parentincome %>% full_join(childincome)
+glimpse(income)
+nrow(parentincome)
+length(parentincome)
+nrow(childincome)
+length(childincome)
+nrow(income)
+length(income)
+```
+*I chose to use a full join because there were multiple overlapping variables and I wanted the data from both data sets to be fully retained. Data set 1, parent income, had 21 variables and 1515 observations. Data set 2, child income, had 7 variables and 1245 observations. No observations were dropped. The final dataset contained 22 variables and 2769 observations.*
+
+## Wrangling/Tidying
+```{r}
+income2 <- income %>% 
+  pivot_longer(cols = starts_with("k_q"), names_to="k_q", values_to="kqvalues")  %>% 
+pivot_longer(cols = starts_with("k_top"), names_to="k_top", values_to="ktopvalues") %>% 
+  pivot_wider(names_from="k_q", values_from="kqvalues") %>% 
+  pivot_longer(cols = starts_with("k_q"), names_to="k_q", values_to="kqvalues") %>% 
+  select(-c(tier, married, density)) 
+glimpse(income2)
+```
+*I tidied the datasets using pivot_longer to join all columns describing k_q[PCTILE] into one column and their values in another titled kqvalues. I moved these values back into multiple different columns to show the pivot_wider function, then retidied. I similiarly joined all columns describing k_top[PCTILE]pc into one column and their values in another titled ktopvalues. Lastly, I removed the column "tier" because it was the same as tier_name. I also removed the column "married" as I will not be using that variable in my analysis and "density" as I will recreate this variable later in the analysis.*
+
+##Summary Statistics 
+
+```{r}
+library(qwraps2)
+options(qwraps2_markup = "markdown")
+income2 <- as.data.frame(income2)
+summary_statistic <-
+  list(
+    "Mean Kid Earnings" =
+      list(
+        "mean (sd)" = ~qwraps2::mean_sd(k_mean, na_rm = TRUE),
+        "median (Q1, Q3)" = ~qwraps2::median_iqr(k_mean, na_rm = TRUE),
+        "min" = ~min(k_mean, na.rm = TRUE),
+        "max" = ~max(k_mean, na.rm = TRUE),
+        "Missing" = ~sum(is.na(k_mean)),
+        "var" = ~var(k_mean, na.rm=TRUE),
+        "distinct" = ~sum(n_distinct(k_mean))
+      ),
+    "Mean Parent Household Income" = 
+           list(
+             "mean (sd)" = ~qwraps2::mean_sd(par_mean, na_rm = TRUE),
+             "median (Q1, Q3)" = ~qwraps2::median_iqr(par_mean, na_rm = TRUE),
+        "min" = ~min(par_mean, na.rm = TRUE),
+        "max" = ~max(par_mean, na.rm = TRUE),
+        "Missing" = ~sum(is.na(par_mean)),
+        "var" = ~var(par_mean, na.rm=TRUE),
+        "distinct" = ~sum(n_distinct(par_mean))
+           ))
+summary_table(income2, summary_statistic)
+
+library(kableExtra)
+
+income2 %>% group_by(k_top) %>%
+  summarize(mean=mean(ktopvalues, na.rm=T), count=n(), sd=sd(ktopvalues, na.rm=T), variance=var(ktopvalues, na.rm=T), distinct=sum(n_distinct(ktopvalues)), min=min(ktopvalues, na.rm=T), median(ktopvalues, na.rm=T), max=max(ktopvalues, na.rm=T), Q1=quantile(ktopvalues,probs = 0.25, na.rm=T), Q3=quantile(ktopvalues, probs = 0.75, na.rm=T), Missing=sum(is.na(ktopvalues)))%>% kbl() %>%
+  kable_styling()
+income2 %>% group_by(k_q) %>%
+  summarize(mean=mean(kqvalues, na.rm=T), sd=sd(kqvalues, na.rm=T), variance=var(kqvalues, na.rm=T), distinct=sum(n_distinct(kqvalues)), min=min(kqvalues, na.rm=T), max=max(kqvalues, na.rm=T),median(kqvalues, na.rm=T), max=max(kqvalues, na.rm=T), Q1=quantile(kqvalues,probs = 0.25, na.rm=T), Q3=quantile(kqvalues, probs = 0.75, na.rm=T), Missing=sum(is.na(kqvalues))) %>% 
+  kbl() %>%
+  kable_styling()
+grouped <- income2 %>% group_by(k_q, tier_name) %>%
+  summarize(mean=mean(kqvalues, na.rm=T), sd=sd(kqvalues, na.rm=T), variance=var(kqvalues, na.rm=T), distinct=sum(n_distinct(kqvalues)), min=min(kqvalues, na.rm=T), max=max(kqvalues, na.rm=T),median(kqvalues, na.rm=T), max=max(kqvalues, na.rm=T), Q1=quantile(kqvalues,probs = 0.25, na.rm=T), Q3=quantile(kqvalues, probs = 0.75, na.rm=T), Missing=sum(is.na(kqvalues))) 
+glimpse(grouped) 
+cor <- income2 %>% select_if(is.numeric)
+tidycor <- cor %>%
+  cor(use="pair") 
+tidycor 
+
+```
+
+*To calculate summary statistics, mean, standard deviation, variance, distinct values, median, Q1, Q2, variance, minimum, maximum, and number of NAs were found for the variables par_mean and k_mean. The same values were found when grouped by k_q and k_top. Lastly, the values were found when grouped by tier_name and k_q. A correlation matrix for the numeric variables was additionally made.*
+
+##More Summary Statistics 
+
+```{r}
+stats <- income2 %>% 
+  mutate(density=count/tot_count) %>% 
+  select(par_pctile, tier_name, count, tot_count, density)
+glimpse(stats)
+income2 %>% 
+  group_by(tier_name) %>% 
+  summarize(mean=mean(par_mean, na.rm=T)) %>%
+arrange(desc(mean))
+stats %>% 
+  filter(par_pctile>80) %>% 
+  group_by(tier_name) %>%
+  summarize(percent=sum(density, na.rm=T)) %>% 
+  arrange(desc(percent))
+stats %>% 
+  filter(par_pctile<20) %>% 
+  group_by(tier_name) %>%
+  summarize(percent=sum(density, na.rm=T)) %>% 
+  arrange(desc(percent))
+```
+
+*The column "density" was recreated to show the fraction of kids in par_pctile or k_pctile by tier. Furthermore, students who attended elite and ivy colleges came from households with a higher mean income while students who attended college for less than two years came from households with a significantly lower mean income. Students from the top 20 parent percentile were much more likely to attend ivy, elite, and highly selective colleges than students in the bottom 20 parent percentile. Students in the bottom 20 parent percentile were more likely to attend lower ranking schools or never attend college.*
+
+##Visualizing 
+ 
+```{R fig.width=10}
+tidy <- tidycor %>% as.data.frame %>% rownames_to_column("var1")%>%
+  pivot_longer(-1,names_to="var2",values_to="correlation")
+tidied <- na.omit(tidy)
+tidied%>%ggplot(aes(var1,var2,fill=correlation))+
+  geom_tile()+
+  scale_fill_gradient2(low="red",mid="white",high="blue")+ 
+  geom_text(aes(label=round(correlation,2)),color = "black", size = 2)+ 
+  theme(axis.text.x = element_text(angle = 90, hjust=1))+
+  coord_fixed() +labs(title="Correlational Heatmap")
+```
+
+*The correlational heatmap shows the correlation between each numeric variable in the dataset ranging from -1 to 1. Strong positive correlation is shown in blue, no correlation in white, and strong negative correlation in red. Weaker correlations are shown by the purple gradient.*
+
+```{R fig.width=10}
+tabledata <- income2 %>% select(par_mean, k_mean, tier_name) %>% 
+  mutate(partable=par_mean/1000, ktable=k_mean/1000 )
+tabledata2 <- na.omit(tabledata)
+ ggplot(tabledata2, aes(ktable,tier_name))+
+  geom_point(aes(color=partable), size=2) + 
+  labs(title="Mean Kid Earnings and Parent Household Income by College Tier", color="Mean Parent Household Income") + 
+  ylab("College Tier") + xlab("Mean Kid Earnings") + 
+  scale_x_continuous(breaks= seq(0,500, by=50)) + scale_color_gradient(low="purple", high="white")
+```
+
+*The graph visualizes mean kid earnings and parent household earnings by college tier. The value translates to $100,000 for every 100. Students with parent household earnings over $200,000 are shown in grey. The graph shows a trend of students with parents who have a higher mean household income attending more selective colleges. The graph also shows that kids who attended Ivy plus, other elite schools, and generally more selective schools had a higher mean earning than those who did not.* 
+
+```{R fig.width=8}
+ggplot(income2, aes(y = tier_name, fill=k_q))+ 
+  geom_bar(aes(x=kqvalues), stat="summary", fun=mean) +
+  scale_x_continuous(breaks= seq(0,1, by=.10)) +
+  ylab("College Tier") + xlab("Percentage of Students in each Earning Quintile") +
+  labs(title= "Percentage of Students in each Earning Quintile by Tier") + 
+  scale_fill_brewer(palette="RdPu", name = "Income Quintile", 
+  labels = c("Bottom Quintile 5", "Quintile 4", "Quintile 3", "Quintile 2", "Top Quintile 1"))
+```
+
+*The graph shows the percentage of students in each earning quintile by tier. There were more ivy, elite, and highly selective college students in the top percentile. Students who never attended college, attended less than two years, or attended late were less likely to be in the top percentile. These results overall show that the higher status colleges had more students in the top percentile than less prestigious schools. *
+
+##Clustering
+
+```{r}
+library(cluster)
+clust_data<-income2%>%dplyr::select(par_pctile, par_mean, k_mean)
+clust_dat <- na.omit(clust_data)
+sil_width<-vector() 
+for(i in 2:10){  
+  kms <- kmeans(clust_dat,centers=i) 
+  sil <- silhouette(kms$cluster,dist(clust_dat)) 
+  sil_width[i]<-mean(sil[,3]) }
+ggplot()+geom_line(aes(x=1:10,y=sil_width))+scale_x_continuous(name="k",breaks=1:10)
+pam1<-clust_dat%>%pam(k=2)
+library(GGally) 
+clust_dat %>% mutate(cluster=as.factor(pam1$clustering)) %>% 
+  ggpairs(columns = c("par_pctile","par_mean","k_mean"), aes(color=cluster))
+plot(pam1, which=2)
+```
+
+*A k-medoids (PAM) correlation matrix was produced with the factors par_pctile, par_mean, and k_mean. Average silhouette width was examined to find the ideal number of clusters, which was found to be 2 as the graph peaks at 2. The results show weak correlations between the three variables. The correlations were 0.289 between par_mean and par_pctile, 0.227 between k_mean and par_pctile, and 0.187 between par_mean and k_mean. The final fit of the cluster solution was strong.*
+

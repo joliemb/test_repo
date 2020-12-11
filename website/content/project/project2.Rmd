@@ -1,0 +1,218 @@
+---
+title: "Project 2"
+author: "Jolie Bourek"
+date: "11/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction 
+**This project analyzes the dataset Salaries recording salaries of Assistant Professors, Associate Professors, and Professors in the 2008-2009 school year. There are 6 variables with 397 observations. The 6 variables are rank= ranks if Associate Professor, Assistant Professor, or Professor, discipline= A: "theoretical" departments or B: "applied" departments, yrs.since.phd= years since PhD, yrs.service= years of service, sex= Male or Female, and salary= nine-month salary in dollars. I expect to see a relationship between yrs.service and yrs.since.phd with being a Professor. I also expect there to be a wage gap between Males and Females. **
+
+##MANOVA
+
+```{r}
+library(tidyverse)
+library(dplyr)
+Salaries <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/carData/Salaries.csv")
+ sal <- Salaries %>% 
+  select(-c(X1)) 
+ library(rstatix)
+
+group <- sal$rank
+DVs <- sal %>% select(yrs.since.phd, yrs.service, salary)
+
+#Test multivariate normality for each group (null: assumption met)
+sapply(split(DVs,group), mshapiro_test)
+
+#If any p<.05, stop (assumption violated). If not, test homogeneity of covariance matrices
+
+#Box's M test (null: homogeneity of vcov mats assumption met)
+box_m(DVs, group)
+
+#Optionally View covariance matrices for each group
+lapply(split(DVs,group), cov)
+
+man1 <- manova(cbind(yrs.since.phd, yrs.service, salary)~rank,data=sal)
+summary(man1)
+summary.aov(man1)
+pairwise.t.test(sal$yrs.since.phd, sal$rank,p.adj="none")
+pairwise.t.test(sal$yrs.service, sal$rank,p.adj="none")
+pairwise.t.test(sal$salary, sal$rank,p.adj="none")
+```
+
+**A one-way MANOVA was conducted to determine the effect of what title a professor had (Assistant Professor, Associate Professor, or Professor) on three dependent variables (yrs.since.phd, yrs.service, salary).There were a multitued of assumptions including random samples and independent observations, multivariate normaliity of DVs, homogeneity of within-group covaraince matrices, linear relationships among DVs, no extreme univariate or multivariate outliers, and no multicollinearity. Examination of bivariate density plots for each group revealed stark departures from multivariate normality. Examination of covariance matrices for each group did not reveal relative homogeneity. There were univariate or multivariate outliers evident, however we continued with the MANOVA analysis technique. Significant differences were found among the three sites for at least one of the dependent variables, Pillai trace=0.6328, pseudo F(6, 786)= 60.633, p<0.0001. Univariate ANOVAs for each dependent variable were conducted as follow-up tests to the MANOVA, using Bonferroni method for controlling Type I error rates for multiple comparisons. The univariate ANOVAs for yrs.since.phd, yrs.service, and salary were also significant, with yrs.since.phd F(2,394)=191.18, p<0.0001, yrs.service F(2,394)=115.9, p<0.0001, and salary F(2, 394)=128.22, p<0.0001. Post hoc analysis was performed conducting pairwise comparisons to determine which title rank differed in yrs.since.phd, yrs.service, and salary. All three title ranks were found to differ significantly from each other in terms of yrs.since.phd, yrs.service, and salary after adjusting for multiple comparisons (bonferroni α = 0.05/13=0.004). We did 1 MANOVA test, 3 ANOVA tests, and 9 pairwise t.tests. The liklihood of a type I error is 1-.95^13= 0.487 (48.7%).**
+
+## Randomization Test 
+
+
+```{r}
+ set.seed(348)
+rand_dist<-vector()
+for(i in 1:5000){
+rand_dist[i]<-mean(sal$salary=="Male")-
+mean(sal$salary=="Female")}
+sal%>%group_by(sex)%>%
+  summarize(means=mean(salary))%>%summarize(`mean_diff`=diff(means))
+rand_dist<-vector() 
+for(i in 1:5000){
+new<-data.frame(sex=sample(sal$sex),salary=sal$salary) 
+rand_dist[i]<-mean(new[new$sex=="Female",]$salary)-   
+              mean(new[new$sex=="Male",]$salary)}
+mean(rand_dist< -14088.01 | rand_dist> 14088.01 )
+
+{hist(rand_dist,main="",ylab=""); abline(v = c(14088.01,-14088.01),col="red")}
+
+```
+
+**H0: Mean salary is the same for Males vs. Females. HA: Mean salary is different for Males vs. Females. For salary (p=0.005) we reject the null hypothesis and conclude there is a significant difference in salary between the two sexes.** 
+
+##Linear Regression 
+
+```{r}
+sal$yrs.service_c<-sal$yrs.service-mean(sal$yrs.service, na.rm=T)
+fit2<-lm(salary ~ yrs.service_c*sex,data=sal)
+summary(fit2)
+ggplot(sal, aes(yrs.service_c, salary, color = sex)) + geom_point() + geom_smooth(method = "lm")
+resids<-lm(salary ~ yrs.service_c*sex, data=sal)$residuals
+ggplot()+geom_histogram(aes(resids),bins=10)
+fitted<-lm(salary ~ yrs.service_c*sex, data=sal)$fitted.values
+ggplot()+geom_point(aes(fitted,resids))
+resids<-fit2$residuals
+fitvals<-fit2$fitted.values
+ggplot()+geom_point(aes(fitvals,resids))+geom_hline(yintercept=0, color='red')
+ggplot()+geom_histogram(aes(resids), bins=20)
+library(lmtest)
+library(sandwich)
+coeftest(fit2, vcov = vcovHC(fit2))
+```
+
+**Predicted salary for a female with average years of service is $110908.90 (t=20.011, p=2e-16). Females show an increase of $1637 in salary for every 1-unit increase in years of service on average (t=3.130, p=0.00188). In persons of average years of service, salary is $3716.50 higher for males compared to females (t=0.647, t=0.5179). The slope for years of service on salary is 931.7 less for males compared to females (t=-1.741, p=0.0825). The data meets the assumption of linearity due to a normal distribution but fails the assumption of homoskedaskity due to a fanning pattern. The normality assumption is not met due to a right skew of the data. The intercept and yrs_service_c were significant. After recomputing the regression results with robust standard errors, the interaction between yrs.service_c:sexMale was also significant (t=-1.989, p=0.0474).** 
+
+##Bootstrapping 
+
+```{r}
+set.seed(348)
+boot_dat<- sample_frac(sal, replace=T)
+samp_distn<-replicate(5000, {
+boot_dat <- sample_frac(sal, replace=T) 
+fit <- lm(salary ~ yrs.service_c*sex, data=boot_dat)
+coef(fit) 
+})
+samp_distn %>% t %>% as.data.frame %>% summarize_all(sd)
+```
+
+**The standard errors after bootstrapping were 457.4475 for years.service_c, 5802.69 for sexmale, and 479.326 for yrs.service_c:sexMale. These values are slightly higher compared to the robust SEs which were 446.39 for yrs.service_c and 468.38 for yrs.service_c:sexMale, and slightly lower for sexMale at 5803.15.You would still reject the null hypothesis. ** 
+
+##Logistic Regression Model 
+
+```{r}
+library(plotROC)
+sal<-sal%>%mutate(y=ifelse(rank=="Prof",1,0))
+fit3<-glm(y~yrs.service+yrs.since.phd+salary,data=sal,family="binomial")
+summary(fit3)
+exp(coef(fit3))%>%round(4)%>%data.frame
+prob <- predict(fit3, type="response")
+pred<-ifelse(prob>.5,1,0)
+table(truth=sal$y, prediction=pred)%>%addmargins
+sal$prob <- predict(fit3, type="response") 
+ROCplot<-ggplot(sal)+geom_roc(aes(d=y,m=prob), n.cuts=0)+
+geom_segment(aes(x=0,xend=1,y=0,yend=1),lty=2)
+ROCplot
+calc_auc(ROCplot)
+sal$logit<-predict(fit3,type="link")
+sal$Profstatus<-factor(sal$y,levels=c("1","0")) 
+sal%>%ggplot()+geom_density(aes(logit,color=Profstatus,fill=Profstatus), alpha=.4)+
+  theme(legend.position=c(.85,.85))+geom_vline(xintercept=0)+xlab("logit (log-odds)")+
+  geom_rug(aes(logit,color=Profstatus))
+```
+
+**When there is zero years of service, years since phd, and salary, the probability of being a Professor is 1.634e+01 lower than not being a Professor. For every one unit increase in years of service, odds of being a Professor decreases by 6.49e-02. For every one unit increase in years since phd, odds of being a Professor increases by 2.52e-01. For every one unit increase in salary, odds of being a Professor increase by 1.282e-04. Sensitivity (TPR) is 257/266=0.966, specificity (TNR) is 114/131=0.87, and precision (PPV) is 257/274=0.938. The AUC is 0.9744. This AUC indicates the model is performing well.** 
+
+##Logistic Regression Continued 
+
+```{r}
+class_diag<-function(probs,truth){
+  tab<-table(factor(probs>.5,levels=c("FALSE","TRUE")),truth)
+  acc=sum(diag(tab))/sum(tab)
+  sens=tab[2,2]/colSums(tab)[2]
+  spec=tab[1,1]/colSums(tab)[1]
+  ppv=tab[2,2]/rowSums(tab)[2]
+  f1=2*(sens*ppv)/(sens+ppv)
+
+  if(is.numeric(truth)==FALSE & is.logical(truth)==FALSE){
+    truth<-as.numeric(truth)-1}
+  
+  #CALCULATE EXACT AUC
+  ord<-order(probs, decreasing=TRUE)
+  probs <- probs[ord]; truth <- truth[ord]
+  
+  TPR=cumsum(truth)/max(1,sum(truth)) 
+  FPR=cumsum(!truth)/max(1,sum(!truth))
+  
+  dup<-c(probs[-1]>=probs[-length(probs)], FALSE)
+  TPR<-c(0,TPR[!dup],1); FPR<-c(0,FPR[!dup],1)
+  
+  n <- length(TPR)
+  auc<- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n]) )
+
+  data.frame(acc,sens,spec,ppv,f1,auc)
+}
+sal2 <- Salaries %>% 
+  select(-c(X1)) 
+sal2<-sal2%>%mutate(y=ifelse(rank=="Prof",1,0)) 
+sal2 <- sal2%>% select(-c(rank))
+fit4 <- glm(y~., data=sal2, family="binomial")
+prob2 <- predict(fit4, type="response")
+class_diag(prob2, sal2$y)
+set.seed(1234)
+k=10
+data1<-sal2[sample(nrow(sal2)),] #put dataset in random order
+folds<-cut(seq(1:nrow(sal2)),breaks=k,labels=F) #create folds
+
+diags<-NULL
+for(i in 1:k){          # FOR EACH OF 10 FOLDS
+train<-data1[folds!=i,] # CREATE TRAINING SET
+test<-data1[folds==i,]  # CREATE TESTING SET
+
+truth<-test$y 
+
+fit<- glm(y~., data=train, family="binomial")
+  probs<- predict(fit, newdata=test, type="response") 
+
+diags<-rbind(diags,class_diag(probs,truth)) #CV DIAGNOSTICS FOR EACH FOLD
+}
+
+summarize_all(diags,mean) #AVERAGE THE DIAGNOSTICS ACROSS THE 10 FOLDS
+library(glmnet)
+set.seed(1234)
+yy<-as.matrix(sal2$y) #grab response
+prof_preds<-model.matrix(y~.,data=sal2)[,-1] #grab predictors
+cv <- cv.glmnet(prof_preds,yy, family="binomial") #picks an optimal value for lambda through 10-fo
+lasso_fit <- glmnet(prof_preds,yy,family="binomial",lambda=cv$lambda.1se) 
+coef(lasso_fit)
+prob2 <- predict(lasso_fit, prof_preds, type="response")        
+class_diag(prob2, sal2$y)
+set.seed(1234)
+k=10
+#create dummies for the ranks
+sal2<-sal2 %>% mutate(disciplineB=ifelse(sal2$discipline=="B",1,0))
+data1<-sal2[sample(nrow(sal2)),] #randomly order rows
+folds<-cut(seq(1:nrow(sal2)),breaks=k,labels=F) #create folds
+diags<-NULL
+for(i in 1:k){
+train <- data1[folds!=i,] #create training set (all but fold i)
+test <- data1[folds==i,] #create test set (just fold i)
+truth <- test$y #save truth labels from fold i
+fit <- glm(y~disciplineB+yrs.since.phd+salary,
+data=train, family="binomial")
+probs <- predict(fit, newdata=test, type="response")
+diags<-rbind(diags,class_diag(probs,truth))
+}
+diags%>%summarize_all(mean)
+```
+
+**The fitted main effects model indicates the model is great at predicting the data with an AUC of 0.979. Rerunning the model under cross-validation resulted in a slightly lower AUC of 0.978, which indicates the model is also great at predicting the data. After performing a LASSO regression, the disciplineB, yrs.since.phd, and salary variables were retained. Running a 10-fold CV with only the variables lasso selected resulted in an AUC of 0.978. This AUC is the same as the out-of-sample AUC and is thus still great at predicting the data. ** 

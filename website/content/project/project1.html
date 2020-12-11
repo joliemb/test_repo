@@ -1,0 +1,752 @@
+---
+title: "Educational Opportunity in Relation to Parental Income"
+author: "Jolie Bourek"
+date: "10/15/2020"
+output: html_document
+---
+
+<script src="/rmarkdown-libs/kePrint/kePrint.js"></script>
+<link href="/rmarkdown-libs/lightable/lightable.css" rel="stylesheet" />
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>My project is based on the two datasets “Cross-Sectional Statistics by College Tier and Parent Income Percentile” and “Cross-Sectional Statistics on Children’s Income Distributions by College” produced by opportunity insights research. The datasets were obtained by pulling random samples of students from de-identified federal public tax records in the 1980, 1981, and 1982 birth cohorts. This data was of interest to me because the opportunity gap in our nation between high and low income students is still measurable. I wanted to explore the relationships between parental income to educational opportunity and later earnings. I expect to see a trend of students with parents in higher income percentiles attending more elite colleges, and attending college more frequently than those from bottom income percentiles. I also expect students who attended higher status colleges to earn more than students who attended less prestigious colleges. Due to the large number of variables in each data set, tables of the variables are linked below taken from the website that conducted the research. <a href="https://opportunityinsights.org/wp-content/uploads/2018/04/Codebook-MRC-Table-6.pdf" class="uri">https://opportunityinsights.org/wp-content/uploads/2018/04/Codebook-MRC-Table-6.pdf</a> <a href="https://opportunityinsights.org/wp-content/uploads/2018/04/Codebook-MRC-Table-7.pdf" class="uri">https://opportunityinsights.org/wp-content/uploads/2018/04/Codebook-MRC-Table-7.pdf</a></p>
+</div>
+<div id="joiningrearranging" class="section level2">
+<h2>Joining/Rearranging</h2>
+<pre class="r"><code>parentincome &lt;- read_csv(&quot;https://opportunityinsights.org//wp-content/uploads/2018/04/mrc_table6.csv&quot;)</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   .default = col_double(),
+##   tier_name = col_character()
+## )</code></pre>
+<pre><code>## See spec(...) for full column specifications.</code></pre>
+<pre class="r"><code>childincome &lt;- read_csv(&quot;https://opportunityinsights.org//wp-content/uploads/2018/04/mrc_table7.csv&quot;)</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   k_pctile = col_double(),
+##   tier = col_double(),
+##   tier_name = col_character(),
+##   k_mean = col_double(),
+##   count = col_double(),
+##   tot_count = col_double(),
+##   density = col_double()
+## )</code></pre>
+<pre class="r"><code>income &lt;- parentincome %&gt;% full_join(childincome)</code></pre>
+<pre><code>## Joining, by = c(&quot;tier&quot;, &quot;tier_name&quot;, &quot;k_mean&quot;, &quot;count&quot;, &quot;tot_count&quot;, &quot;density&quot;)</code></pre>
+<pre class="r"><code>glimpse(income)</code></pre>
+<pre><code>## Rows: 2,769
+## Columns: 22
+## $ par_pctile      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,…
+## $ tier            &lt;dbl&gt; 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11…
+## $ tier_name       &lt;chr&gt; &quot;Ivy Plus&quot;, &quot;Other elite schools (public and private)…
+## $ par_mean        &lt;dbl&gt; 1500, 1600, 1700, 1600, 1800, 1800, 1900, 1800, 1800,…
+## $ k_mean          &lt;dbl&gt; 198900, 70300, 55500, 54000, 37500, 42800, 28200, 247…
+## $ k_rank          &lt;dbl&gt; 0.6978631, 0.6594622, 0.6238405, 0.5926308, 0.5367839…
+## $ k_top1pc        &lt;dbl&gt; 0.1555555600, 0.0711009130, 0.0313199090, 0.043307085…
+## $ k_top5pc        &lt;dbl&gt; 0.303703700, 0.211009170, 0.146532450, 0.161417320, 0…
+## $ k_top10pc       &lt;dbl&gt; 0.37037036, 0.30733943, 0.22930649, 0.25984251, 0.108…
+## $ k_q5            &lt;dbl&gt; 0.54814816, 0.50688076, 0.38031319, 0.38582677, 0.227…
+## $ k_q4            &lt;dbl&gt; 0.11851852, 0.13073394, 0.22706935, 0.14566930, 0.231…
+## $ k_q3            &lt;dbl&gt; 0.14074074, 0.11238532, 0.12863535, 0.13779527, 0.197…
+## $ k_q2            &lt;dbl&gt; 0.06666667, 0.10321101, 0.12639821, 0.14566930, 0.183…
+## $ k_q1            &lt;dbl&gt; 0.12592593, 0.14678900, 0.13758390, 0.18503937, 0.160…
+## $ k_nowork        &lt;dbl&gt; 0.11851852, 0.13761468, 0.13199104, 0.18110237, 0.146…
+## $ married         &lt;dbl&gt; 0.4592593, 0.4655963, 0.4317673, 0.4251969, 0.4224152…
+## $ k_median        &lt;dbl&gt; 61300, 56400, 43700, 41200, 32000, 33200, 22400, 1670…
+## $ k_median_nozero &lt;dbl&gt; 68000, 62400, 50400, 50900, 37600, 39700, 28700, 2340…
+## $ count           &lt;dbl&gt; 135, 436, 894, 254, 6335, 1471, 1471, 282, 12036, 107…
+## $ tot_count       &lt;dbl&gt; 52724, 183973, 393548, 134098, 1944082, 486852, 25785…
+## $ density         &lt;dbl&gt; 0.002560504, 0.002369913, 0.002271642, 0.001894137, 0…
+## $ k_pctile        &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N…</code></pre>
+<pre class="r"><code>nrow(parentincome)</code></pre>
+<pre><code>## [1] 1515</code></pre>
+<pre class="r"><code>length(parentincome)</code></pre>
+<pre><code>## [1] 21</code></pre>
+<pre class="r"><code>nrow(childincome)</code></pre>
+<pre><code>## [1] 1245</code></pre>
+<pre class="r"><code>length(childincome)</code></pre>
+<pre><code>## [1] 7</code></pre>
+<pre class="r"><code>nrow(income)</code></pre>
+<pre><code>## [1] 2769</code></pre>
+<pre class="r"><code>length(income)</code></pre>
+<pre><code>## [1] 22</code></pre>
+<p><em>I chose to use a full join because there were multiple overlapping variables and I wanted the data from both data sets to be fully retained. Data set 1, parent income, had 21 variables and 1515 observations. Data set 2, child income, had 7 variables and 1245 observations. No observations were dropped. The final dataset contained 22 variables and 2769 observations.</em></p>
+</div>
+<div id="wranglingtidying" class="section level2">
+<h2>Wrangling/Tidying</h2>
+<pre class="r"><code>income2 &lt;- income %&gt;% 
+  pivot_longer(cols = starts_with(&quot;k_q&quot;), names_to=&quot;k_q&quot;, values_to=&quot;kqvalues&quot;)  %&gt;% 
+pivot_longer(cols = starts_with(&quot;k_top&quot;), names_to=&quot;k_top&quot;, values_to=&quot;ktopvalues&quot;) %&gt;% 
+  pivot_wider(names_from=&quot;k_q&quot;, values_from=&quot;kqvalues&quot;) %&gt;% 
+  pivot_longer(cols = starts_with(&quot;k_q&quot;), names_to=&quot;k_q&quot;, values_to=&quot;kqvalues&quot;) %&gt;% 
+  select(-c(tier, married, density)) 
+glimpse(income2)</code></pre>
+<pre><code>## Rows: 41,535
+## Columns: 15
+## $ par_pctile      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+## $ tier_name       &lt;chr&gt; &quot;Ivy Plus&quot;, &quot;Ivy Plus&quot;, &quot;Ivy Plus&quot;, &quot;Ivy Plus&quot;, &quot;Ivy …
+## $ par_mean        &lt;dbl&gt; 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500,…
+## $ k_mean          &lt;dbl&gt; 198900, 198900, 198900, 198900, 198900, 198900, 19890…
+## $ k_rank          &lt;dbl&gt; 0.6978631, 0.6978631, 0.6978631, 0.6978631, 0.6978631…
+## $ k_nowork        &lt;dbl&gt; 0.1185185, 0.1185185, 0.1185185, 0.1185185, 0.1185185…
+## $ k_median        &lt;dbl&gt; 61300, 61300, 61300, 61300, 61300, 61300, 61300, 6130…
+## $ k_median_nozero &lt;dbl&gt; 68000, 68000, 68000, 68000, 68000, 68000, 68000, 6800…
+## $ count           &lt;dbl&gt; 135, 135, 135, 135, 135, 135, 135, 135, 135, 135, 135…
+## $ tot_count       &lt;dbl&gt; 52724, 52724, 52724, 52724, 52724, 52724, 52724, 5272…
+## $ k_pctile        &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N…
+## $ k_top           &lt;chr&gt; &quot;k_top1pc&quot;, &quot;k_top1pc&quot;, &quot;k_top1pc&quot;, &quot;k_top1pc&quot;, &quot;k_to…
+## $ ktopvalues      &lt;dbl&gt; 0.15555556, 0.15555556, 0.15555556, 0.15555556, 0.155…
+## $ k_q             &lt;chr&gt; &quot;k_q5&quot;, &quot;k_q4&quot;, &quot;k_q3&quot;, &quot;k_q2&quot;, &quot;k_q1&quot;, &quot;k_q5&quot;, &quot;k_q4…
+## $ kqvalues        &lt;dbl&gt; 0.54814816, 0.11851852, 0.14074074, 0.06666667, 0.125…</code></pre>
+<p><em>I tidied the datasets using pivot_longer to join all columns describing k_q[PCTILE] into one column and their values in another titled kqvalues. I moved these values back into multiple different columns to show the pivot_wider function, then retidied. I similiarly joined all columns describing k_top[PCTILE]pc into one column and their values in another titled ktopvalues. Lastly, I removed the column &quot;tier&quot; because it was the same as tier_name. I also removed the column &quot;married&quot; as I will not be using that variable in my analysis and &quot;density&quot; as I will recreate this variable later in the analysis.</em></p>
+</div>
+<div id="summary-statistics" class="section level2">
+<h2>Summary Statistics</h2>
+<pre class="r"><code>library(qwraps2)
+options(qwraps2_markup = &quot;markdown&quot;)
+income2 &lt;- as.data.frame(income2)
+summary_statistic &lt;-
+  list(
+    &quot;Mean Kid Earnings&quot; =
+      list(
+        &quot;mean (sd)&quot; = ~qwraps2::mean_sd(k_mean, na_rm = TRUE),
+        &quot;median (Q1, Q3)&quot; = ~qwraps2::median_iqr(k_mean, na_rm = TRUE),
+        &quot;min&quot; = ~min(k_mean, na.rm = TRUE),
+        &quot;max&quot; = ~max(k_mean, na.rm = TRUE),
+        &quot;Missing&quot; = ~sum(is.na(k_mean)),
+        &quot;var&quot; = ~var(k_mean, na.rm=TRUE),
+        &quot;distinct&quot; = ~sum(n_distinct(k_mean))
+      ),
+    &quot;Mean Parent Household Income&quot; = 
+           list(
+             &quot;mean (sd)&quot; = ~qwraps2::mean_sd(par_mean, na_rm = TRUE),
+             &quot;median (Q1, Q3)&quot; = ~qwraps2::median_iqr(par_mean, na_rm = TRUE),
+        &quot;min&quot; = ~min(par_mean, na.rm = TRUE),
+        &quot;max&quot; = ~max(par_mean, na.rm = TRUE),
+        &quot;Missing&quot; = ~sum(is.na(par_mean)),
+        &quot;var&quot; = ~var(par_mean, na.rm=TRUE),
+        &quot;distinct&quot; = ~sum(n_distinct(par_mean))
+           ))
+summary_table(income2, summary_statistic)</code></pre>
+<pre><code>## 
+## 
+## |                                 |income2 (N = 41,535)                      |
+## |:--------------------------------|:-----------------------------------------|
+## |**Mean Kid Earnings**            |&amp;nbsp;&amp;nbsp;                              |
+## |&amp;nbsp;&amp;nbsp; mean (sd)           |41,250; 44,826.84 &amp;plusmn; 34,999.52      |
+## |&amp;nbsp;&amp;nbsp; median (Q1, Q3)     |41,250; 36,650.00 (26,200.00, 56,600.00)  |
+## |&amp;nbsp;&amp;nbsp; min                 |0                                         |
+## |&amp;nbsp;&amp;nbsp; max                 |468000                                    |
+## |&amp;nbsp;&amp;nbsp; Missing             |285                                       |
+## |&amp;nbsp;&amp;nbsp; var                 |1224966466.87545                          |
+## |&amp;nbsp;&amp;nbsp; distinct            |801                                       |
+## |**Mean Parent Household Income** |&amp;nbsp;&amp;nbsp;                              |
+## |&amp;nbsp;&amp;nbsp; mean (sd)           |22,665; 135,452.95 &amp;plusmn; 548,237.50    |
+## |&amp;nbsp;&amp;nbsp; median (Q1, Q3)     |22,665; 59,800.00 (29,700.00, 100,500.00) |
+## |&amp;nbsp;&amp;nbsp; min                 |1500                                      |
+## |&amp;nbsp;&amp;nbsp; max                 |7174900                                   |
+## |&amp;nbsp;&amp;nbsp; Missing             |18870                                     |
+## |&amp;nbsp;&amp;nbsp; var                 |300564356855.185                          |
+## |&amp;nbsp;&amp;nbsp; distinct            |398                                       |</code></pre>
+<pre class="r"><code>library(kableExtra)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;kableExtra&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     group_rows</code></pre>
+<pre class="r"><code>income2 %&gt;% group_by(k_top) %&gt;%
+  summarize(mean=mean(ktopvalues, na.rm=T), count=n(), sd=sd(ktopvalues, na.rm=T), variance=var(ktopvalues, na.rm=T), distinct=sum(n_distinct(ktopvalues)), min=min(ktopvalues, na.rm=T), median(ktopvalues, na.rm=T), max=max(ktopvalues, na.rm=T), Q1=quantile(ktopvalues,probs = 0.25, na.rm=T), Q3=quantile(ktopvalues, probs = 0.75, na.rm=T), Missing=sum(is.na(ktopvalues)))%&gt;% kbl() %&gt;%
+  kable_styling()</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+k_top
+</th>
+<th style="text-align:right;">
+mean
+</th>
+<th style="text-align:right;">
+count
+</th>
+<th style="text-align:right;">
+sd
+</th>
+<th style="text-align:right;">
+variance
+</th>
+<th style="text-align:right;">
+distinct
+</th>
+<th style="text-align:right;">
+min
+</th>
+<th style="text-align:right;">
+median(ktopvalues, na.rm = T)
+</th>
+<th style="text-align:right;">
+max
+</th>
+<th style="text-align:right;">
+Q1
+</th>
+<th style="text-align:right;">
+Q3
+</th>
+<th style="text-align:right;">
+Missing
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+k_top10pc
+</td>
+<td style="text-align:right;">
+0.1579875
+</td>
+<td style="text-align:right;">
+13845
+</td>
+<td style="text-align:right;">
+0.1342199
+</td>
+<td style="text-align:right;">
+0.0180150
+</td>
+<td style="text-align:right;">
+1487
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.1033952
+</td>
+<td style="text-align:right;">
+0.5774648
+</td>
+<td style="text-align:right;">
+0.0571429
+</td>
+<td style="text-align:right;">
+0.2451684
+</td>
+<td style="text-align:right;">
+6290
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+k_top1pc
+</td>
+<td style="text-align:right;">
+0.0236452
+</td>
+<td style="text-align:right;">
+13845
+</td>
+<td style="text-align:right;">
+0.0399083
+</td>
+<td style="text-align:right;">
+0.0015927
+</td>
+<td style="text-align:right;">
+1350
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.0064279
+</td>
+<td style="text-align:right;">
+0.2566524
+</td>
+<td style="text-align:right;">
+0.0018377
+</td>
+<td style="text-align:right;">
+0.0286513
+</td>
+<td style="text-align:right;">
+6290
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+k_top5pc
+</td>
+<td style="text-align:right;">
+0.0896634
+</td>
+<td style="text-align:right;">
+13845
+</td>
+<td style="text-align:right;">
+0.0996526
+</td>
+<td style="text-align:right;">
+0.0099306
+</td>
+<td style="text-align:right;">
+1469
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.0443213
+</td>
+<td style="text-align:right;">
+0.4692358
+</td>
+<td style="text-align:right;">
+0.0216075
+</td>
+<td style="text-align:right;">
+0.1338700
+</td>
+<td style="text-align:right;">
+6290
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>income2 %&gt;% group_by(k_q) %&gt;%
+  summarize(mean=mean(kqvalues, na.rm=T), sd=sd(kqvalues, na.rm=T), variance=var(kqvalues, na.rm=T), distinct=sum(n_distinct(kqvalues)), min=min(kqvalues, na.rm=T), max=max(kqvalues, na.rm=T),median(kqvalues, na.rm=T), max=max(kqvalues, na.rm=T), Q1=quantile(kqvalues,probs = 0.25, na.rm=T), Q3=quantile(kqvalues, probs = 0.75, na.rm=T), Missing=sum(is.na(kqvalues))) %&gt;% 
+  kbl() %&gt;%
+  kable_styling()</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+k_q
+</th>
+<th style="text-align:right;">
+mean
+</th>
+<th style="text-align:right;">
+sd
+</th>
+<th style="text-align:right;">
+variance
+</th>
+<th style="text-align:right;">
+distinct
+</th>
+<th style="text-align:right;">
+min
+</th>
+<th style="text-align:right;">
+max
+</th>
+<th style="text-align:right;">
+median(kqvalues, na.rm = T)
+</th>
+<th style="text-align:right;">
+Q1
+</th>
+<th style="text-align:right;">
+Q3
+</th>
+<th style="text-align:right;">
+Missing
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+k_q1
+</td>
+<td style="text-align:right;">
+0.1556274
+</td>
+<td style="text-align:right;">
+0.0689531
+</td>
+<td style="text-align:right;">
+0.0047545
+</td>
+<td style="text-align:right;">
+1480
+</td>
+<td style="text-align:right;">
+0.0426829
+</td>
+<td style="text-align:right;">
+0.5054198
+</td>
+<td style="text-align:right;">
+0.1433102
+</td>
+<td style="text-align:right;">
+0.1060138
+</td>
+<td style="text-align:right;">
+0.1810219
+</td>
+<td style="text-align:right;">
+3774
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+k_q2
+</td>
+<td style="text-align:right;">
+0.1722624
+</td>
+<td style="text-align:right;">
+0.0717332
+</td>
+<td style="text-align:right;">
+0.0051457
+</td>
+<td style="text-align:right;">
+1485
+</td>
+<td style="text-align:right;">
+0.0329670
+</td>
+<td style="text-align:right;">
+0.4024390
+</td>
+<td style="text-align:right;">
+0.1684428
+</td>
+<td style="text-align:right;">
+0.1093418
+</td>
+<td style="text-align:right;">
+0.2208272
+</td>
+<td style="text-align:right;">
+3774
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+k_q3
+</td>
+<td style="text-align:right;">
+0.1856734
+</td>
+<td style="text-align:right;">
+0.0595090
+</td>
+<td style="text-align:right;">
+0.0035413
+</td>
+<td style="text-align:right;">
+1489
+</td>
+<td style="text-align:right;">
+0.0250000
+</td>
+<td style="text-align:right;">
+0.3333333
+</td>
+<td style="text-align:right;">
+0.1996556
+</td>
+<td style="text-align:right;">
+0.1366178
+</td>
+<td style="text-align:right;">
+0.2367120
+</td>
+<td style="text-align:right;">
+3774
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+k_q4
+</td>
+<td style="text-align:right;">
+0.2075570
+</td>
+<td style="text-align:right;">
+0.0497163
+</td>
+<td style="text-align:right;">
+0.0024717
+</td>
+<td style="text-align:right;">
+1486
+</td>
+<td style="text-align:right;">
+0.0487805
+</td>
+<td style="text-align:right;">
+0.3270677
+</td>
+<td style="text-align:right;">
+0.2149670
+</td>
+<td style="text-align:right;">
+0.1754222
+</td>
+<td style="text-align:right;">
+0.2469304
+</td>
+<td style="text-align:right;">
+3774
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+k_q5
+</td>
+<td style="text-align:right;">
+0.2788797
+</td>
+<td style="text-align:right;">
+0.1692677
+</td>
+<td style="text-align:right;">
+0.0286516
+</td>
+<td style="text-align:right;">
+1495
+</td>
+<td style="text-align:right;">
+0.0227273
+</td>
+<td style="text-align:right;">
+0.6998818
+</td>
+<td style="text-align:right;">
+0.2298470
+</td>
+<td style="text-align:right;">
+0.1450789
+</td>
+<td style="text-align:right;">
+0.4162651
+</td>
+<td style="text-align:right;">
+3774
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>grouped &lt;- income2 %&gt;% group_by(k_q, tier_name) %&gt;%
+  summarize(mean=mean(kqvalues, na.rm=T), sd=sd(kqvalues, na.rm=T), variance=var(kqvalues, na.rm=T), distinct=sum(n_distinct(kqvalues)), min=min(kqvalues, na.rm=T), max=max(kqvalues, na.rm=T),median(kqvalues, na.rm=T), max=max(kqvalues, na.rm=T), Q1=quantile(kqvalues,probs = 0.25, na.rm=T), Q3=quantile(kqvalues, probs = 0.75, na.rm=T), Missing=sum(is.na(kqvalues))) </code></pre>
+<pre><code>## `summarise()` regrouping output by &#39;k_q&#39; (override with `.groups` argument)</code></pre>
+<pre class="r"><code>glimpse(grouped) </code></pre>
+<pre><code>## Rows: 75
+## Columns: 12
+## Groups: k_q [5]
+## $ k_q                           &lt;chr&gt; &quot;k_q1&quot;, &quot;k_q1&quot;, &quot;k_q1&quot;, &quot;k_q1&quot;, &quot;k_q1&quot;,…
+## $ tier_name                     &lt;chr&gt; &quot;Attending college with insufficient da…
+## $ mean                          &lt;dbl&gt; 0.15345355, 0.15078766, 0.10014043, 0.0…
+## $ sd                            &lt;dbl&gt; 0.02217270, 0.02176798, 0.02318956, 0.0…
+## $ variance                      &lt;dbl&gt; 0.0004916287, 0.0004738448, 0.000537755…
+## $ distinct                      &lt;int&gt; 102, 102, 102, 102, 98, 102, 94, 102, 9…
+## $ min                           &lt;dbl&gt; 0.12038597, 0.11225659, 0.06920415, 0.0…
+## $ max                           &lt;dbl&gt; 0.2342342, 0.2333333, 0.2038217, 0.1559…
+## $ `median(kqvalues, na.rm = T)` &lt;dbl&gt; 0.15369523, 0.14855571, 0.09326424, 0.0…
+## $ Q1                            &lt;dbl&gt; 0.13383321, 0.13463750, 0.08538900, 0.0…
+## $ Q3                            &lt;dbl&gt; 0.16691163, 0.16252661, 0.10955711, 0.1…
+## $ Missing                       &lt;int&gt; 249, 249, 249, 249, 249, 249, 285, 249,…</code></pre>
+<pre class="r"><code>cor &lt;- income2 %&gt;% select_if(is.numeric)
+tidycor &lt;- cor %&gt;%
+  cor(use=&quot;pair&quot;) 
+tidycor </code></pre>
+<pre><code>##                    par_pctile      par_mean        k_mean        k_rank
+## par_pctile       1.000000e+00  2.892796e-01  2.267252e-01  2.892453e-01
+## par_mean         2.892796e-01  1.000000e+00  1.867327e-01  2.768511e-02
+## k_mean           2.267252e-01  1.867327e-01  1.000000e+00  8.603899e-01
+## k_rank           2.892453e-01  2.768511e-02  8.603899e-01  1.000000e+00
+## k_nowork        -1.612329e-01  1.369492e-01 -5.561641e-01 -8.215051e-01
+## k_median         2.482170e-01  3.807556e-02  9.319250e-01  9.738818e-01
+## k_median_nozero  2.721940e-01  1.251664e-01  9.552309e-01  9.381301e-01
+## count           -7.826985e-03 -5.530818e-02 -9.397871e-02 -3.836212e-01
+## tot_count        3.609937e-03  8.726802e-03 -1.414151e-01 -4.288918e-01
+## k_pctile         0.000000e+00            NA  7.678455e-01            NA
+## ktopvalues       1.647770e-01  1.081311e-01  7.679619e-01  6.936902e-01
+## kqvalues        -5.093290e-10  6.361970e-11  1.415775e-09  1.386274e-10
+##                      k_nowork      k_median k_median_nozero         count
+## par_pctile      -1.612329e-01  2.482170e-01    2.721940e-01 -7.826985e-03
+## par_mean         1.369492e-01  3.807556e-02    1.251664e-01 -5.530818e-02
+## k_mean          -5.561641e-01  9.319250e-01    9.552309e-01 -9.397871e-02
+## k_rank          -8.215051e-01  9.738818e-01    9.381301e-01 -3.836212e-01
+## k_nowork         1.000000e+00 -7.386969e-01   -6.218215e-01  4.625932e-01
+## k_median        -7.386969e-01  1.000000e+00    9.834453e-01 -3.515066e-01
+## k_median_nozero -6.218215e-01  9.834453e-01    1.000000e+00 -3.339388e-01
+## count            4.625932e-01 -3.515066e-01   -3.339388e-01  1.000000e+00
+## tot_count        5.105145e-01 -4.183040e-01   -3.789144e-01  4.287251e-01
+## k_pctile                   NA            NA              NA -9.526045e-02
+## ktopvalues      -4.200069e-01  7.523842e-01    7.758091e-01 -2.324624e-01
+## kqvalues         9.559006e-10  6.517374e-10    1.092091e-09 -2.722378e-09
+##                     tot_count     k_pctile    ktopvalues      kqvalues
+## par_pctile       3.609937e-03  0.000000000  1.647770e-01 -5.093290e-10
+## par_mean         8.726802e-03           NA  1.081311e-01  6.361970e-11
+## k_mean          -1.414151e-01  0.767845485  7.679619e-01  1.415775e-09
+## k_rank          -4.288918e-01           NA  6.936902e-01  1.386274e-10
+## k_nowork         5.105145e-01           NA -4.200069e-01  9.559006e-10
+## k_median        -4.183040e-01           NA  7.523842e-01  6.517374e-10
+## k_median_nozero -3.789144e-01           NA  7.758091e-01  1.092091e-09
+## count            4.287251e-01 -0.095260452 -2.324624e-01 -2.722378e-09
+## tot_count        1.000000e+00  0.006349883 -2.790431e-01 -2.684539e-09
+## k_pctile         6.349883e-03  1.000000000            NA            NA
+## ktopvalues      -2.790431e-01           NA  1.000000e+00  1.038768e-09
+## kqvalues        -2.684539e-09           NA  1.038768e-09  1.000000e+00</code></pre>
+<p><em>To calculate summary statistics, mean, standard deviation, variance, distinct values, median, Q1, Q2, variance, minimum, maximum, and number of NAs were found for the variables par_mean and k_mean. The same values were found when grouped by k_q and k_top. Lastly, the values were found when grouped by tier_name and k_q. A correlation matrix for the numeric variables was additionally made.</em></p>
+</div>
+<div id="more-summary-statistics" class="section level2">
+<h2>More Summary Statistics</h2>
+<pre class="r"><code>stats &lt;- income2 %&gt;% 
+  mutate(density=count/tot_count) %&gt;% 
+  select(par_pctile, tier_name, count, tot_count, density)
+glimpse(stats)</code></pre>
+<pre><code>## Rows: 41,535
+## Columns: 5
+## $ par_pctile &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+## $ tier_name  &lt;chr&gt; &quot;Ivy Plus&quot;, &quot;Ivy Plus&quot;, &quot;Ivy Plus&quot;, &quot;Ivy Plus&quot;, &quot;Ivy Plus&quot;…
+## $ count      &lt;dbl&gt; 135, 135, 135, 135, 135, 135, 135, 135, 135, 135, 135, 135…
+## $ tot_count  &lt;dbl&gt; 52724, 52724, 52724, 52724, 52724, 52724, 52724, 52724, 52…
+## $ density    &lt;dbl&gt; 0.002560504, 0.002560504, 0.002560504, 0.002560504, 0.0025…</code></pre>
+<pre class="r"><code>income2 %&gt;% 
+  group_by(tier_name) %&gt;% 
+  summarize(mean=mean(par_mean, na.rm=T)) %&gt;%
+arrange(desc(mean))</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 15 x 2
+##    tier_name                                        mean
+##    &lt;chr&gt;                                           &lt;dbl&gt;
+##  1 Ivy Plus                                      162577.
+##  2 Four-year for-profit                          149682.
+##  3 Other elite schools (public and private)      149318.
+##  4 Attending college with insufficient data      146757.
+##  5 Late attender (ages 23-28)                    145541.
+##  6 Never attended college (before year 2013)     145018.
+##  7 Nonselective four-year private not-for-profit 144901.
+##  8 Nonselective four-year public                 142006.
+##  9 Highly selective private                      140258.
+## 10 Selective private                             138919.
+## 11 Selective public                              136865.
+## 12 Two-year (public and private not-for-profit)  136329.
+## 13 Highly selective public                       134179.
+## 14 Two-year for-profit                            86479 
+## 15 Less than two-year schools of any type         70552.</code></pre>
+<pre class="r"><code>stats %&gt;% 
+  filter(par_pctile&gt;80) %&gt;% 
+  group_by(tier_name) %&gt;%
+  summarize(percent=sum(density, na.rm=T)) %&gt;% 
+  arrange(desc(percent))</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 15 x 2
+##    tier_name                                     percent
+##    &lt;chr&gt;                                           &lt;dbl&gt;
+##  1 Ivy Plus                                       10.4  
+##  2 Other elite schools (public and private)        9.43 
+##  3 Highly selective private                        8.38 
+##  4 Highly selective public                         6.93 
+##  5 Selective private                               5.39 
+##  6 Selective public                                4.90 
+##  7 Nonselective four-year private not-for-profit   4.36 
+##  8 Two-year (public and private not-for-profit)    2.81 
+##  9 Nonselective four-year public                   2.51 
+## 10 Attending college with insufficient data        2.11 
+## 11 Four-year for-profit                            1.97 
+## 12 Less than two-year schools of any type          1.83 
+## 13 Two-year for-profit                             1.73 
+## 14 Late attender (ages 23-28)                      1.14 
+## 15 Never attended college (before year 2013)       0.776</code></pre>
+<pre class="r"><code>stats %&gt;% 
+  filter(par_pctile&lt;20) %&gt;% 
+  group_by(tier_name) %&gt;%
+  summarize(percent=sum(density, na.rm=T)) %&gt;% 
+  arrange(desc(percent))</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 15 x 2
+##    tier_name                                     percent
+##    &lt;chr&gt;                                           &lt;dbl&gt;
+##  1 Never attended college (before year 2013)       5.18 
+##  2 Late attender (ages 23-28)                      4.06 
+##  3 Attending college with insufficient data        3.34 
+##  4 Four-year for-profit                            3.17 
+##  5 Less than two-year schools of any type          3.10 
+##  6 Two-year for-profit                             3.10 
+##  7 Nonselective four-year public                   2.55 
+##  8 Two-year (public and private not-for-profit)    2.19 
+##  9 Nonselective four-year private not-for-profit   1.60 
+## 10 Selective public                                1.25 
+## 11 Selective private                               1.06 
+## 12 Highly selective public                         0.819
+## 13 Other elite schools (public and private)        0.651
+## 14 Highly selective private                        0.614
+## 15 Ivy Plus                                        0.563</code></pre>
+<p><em>The column &quot;density&quot; was recreated to show the fraction of kids in par_pctile or k_pctile by tier. Furthermore, students who attended elite and ivy colleges came from households with a higher mean income while students who attended college for less than two years came from households with a significantly lower mean income. Students from the top 20 parent percentile were much more likely to attend ivy, elite, and highly selective colleges than students in the bottom 20 parent percentile. Students in the bottom 20 parent percentile were more likely to attend lower ranking schools or never attend college.</em></p>
+</div>
+<div id="visualizing" class="section level2">
+<h2>Visualizing</h2>
+<pre class="r"><code>tidy &lt;- tidycor %&gt;% as.data.frame %&gt;% rownames_to_column(&quot;var1&quot;)%&gt;%
+  pivot_longer(-1,names_to=&quot;var2&quot;,values_to=&quot;correlation&quot;)
+tidied &lt;- na.omit(tidy)
+tidied%&gt;%ggplot(aes(var1,var2,fill=correlation))+
+  geom_tile()+
+  scale_fill_gradient2(low=&quot;red&quot;,mid=&quot;white&quot;,high=&quot;blue&quot;)+ 
+  geom_text(aes(label=round(correlation,2)),color = &quot;black&quot;, size = 2)+ 
+  theme(axis.text.x = element_text(angle = 90, hjust=1))+
+  coord_fixed() +labs(title=&quot;Correlational Heatmap&quot;)</code></pre>
+<p><img src="/project/project1_files/figure-html/unnamed-chunk-5-1.png" width="960" /></p>
+<p><em>The correlational heatmap shows the correlation between each numeric variable in the dataset ranging from -1 to 1. Strong positive correlation is shown in blue, no correlation in white, and strong negative correlation in red. Weaker correlations are shown by the purple gradient.</em></p>
+<pre class="r"><code>tabledata &lt;- income2 %&gt;% select(par_mean, k_mean, tier_name) %&gt;% 
+  mutate(partable=par_mean/1000, ktable=k_mean/1000 )
+tabledata2 &lt;- na.omit(tabledata)
+ ggplot(tabledata2, aes(ktable,tier_name))+
+  geom_point(aes(color=partable), size=2) + 
+  labs(title=&quot;Mean Kid Earnings and Parent Household Income by College Tier&quot;, color=&quot;Mean Parent Household Income&quot;) + 
+  ylab(&quot;College Tier&quot;) + xlab(&quot;Mean Kid Earnings&quot;) + 
+  scale_x_continuous(breaks= seq(0,500, by=50)) + scale_color_gradient(low=&quot;purple&quot;, high=&quot;white&quot;)</code></pre>
+<p><img src="/project/project1_files/figure-html/unnamed-chunk-6-1.png" width="960" /></p>
+<p><em>The graph visualizes mean kid earnings and parent household earnings by college tier. The value translates to $100,000 for every 100. Students with parent household earnings over $200,000 are shown in grey. The graph shows a trend of students with parents who have a higher mean household income attending more selective colleges. The graph also shows that kids who attended Ivy plus, other elite schools, and generally more selective schools had a higher mean earning than those who did not.</em></p>
+<pre class="r"><code>ggplot(income2, aes(y = tier_name, fill=k_q))+ 
+  geom_bar(aes(x=kqvalues), stat=&quot;summary&quot;, fun=mean) +
+  scale_x_continuous(breaks= seq(0,1, by=.10)) +
+  ylab(&quot;College Tier&quot;) + xlab(&quot;Percentage of Students in each Earning Quintile&quot;) +
+  labs(title= &quot;Percentage of Students in each Earning Quintile by Tier&quot;) + 
+  scale_fill_brewer(palette=&quot;RdPu&quot;, name = &quot;Income Quintile&quot;, 
+  labels = c(&quot;Bottom Quintile 5&quot;, &quot;Quintile 4&quot;, &quot;Quintile 3&quot;, &quot;Quintile 2&quot;, &quot;Top Quintile 1&quot;))</code></pre>
+<pre><code>## Warning: Removed 18870 rows containing non-finite values (stat_summary).</code></pre>
+<p><img src="/project/project1_files/figure-html/unnamed-chunk-7-1.png" width="768" /></p>
+<p><em>The graph shows the percentage of students in each earning quintile by tier. There were more ivy, elite, and highly selective college students in the top percentile. Students who never attended college, attended less than two years, or attended late were less likely to be in the top percentile. These results overall show that the higher status colleges had more students in the top percentile than less prestigious schools. </em></p>
+</div>
+<div id="clustering" class="section level2">
+<h2>Clustering</h2>
+<pre class="r"><code>library(cluster)
+clust_data&lt;-income2%&gt;%dplyr::select(par_pctile, par_mean, k_mean)
+clust_dat &lt;- na.omit(clust_data)
+sil_width&lt;-vector() 
+for(i in 2:10){  
+  kms &lt;- kmeans(clust_dat,centers=i) 
+  sil &lt;- silhouette(kms$cluster,dist(clust_dat)) 
+  sil_width[i]&lt;-mean(sil[,3]) }
+ggplot()+geom_line(aes(x=1:10,y=sil_width))+scale_x_continuous(name=&quot;k&quot;,breaks=1:10)</code></pre>
+<pre><code>## Warning: Removed 1 row(s) containing missing values (geom_path).</code></pre>
+<p><img src="/project/project1_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<pre class="r"><code>pam1&lt;-clust_dat%&gt;%pam(k=2)
+library(GGally) </code></pre>
+<pre><code>## Registered S3 method overwritten by &#39;GGally&#39;:
+##   method from   
+##   +.gg   ggplot2</code></pre>
+<pre class="r"><code>clust_dat %&gt;% mutate(cluster=as.factor(pam1$clustering)) %&gt;% 
+  ggpairs(columns = c(&quot;par_pctile&quot;,&quot;par_mean&quot;,&quot;k_mean&quot;), aes(color=cluster))</code></pre>
+<pre><code>## Warning in cor(x, y): the standard deviation is zero</code></pre>
+<pre><code>## Warning in cor(x, y): the standard deviation is zero</code></pre>
+<p><img src="/project/project1_files/figure-html/unnamed-chunk-8-2.png" width="672" /></p>
+<pre class="r"><code>plot(pam1, which=2)</code></pre>
+<p><img src="/project/project1_files/figure-html/unnamed-chunk-8-3.png" width="672" /></p>
+<p><em>A k-medoids (PAM) correlation matrix was produced with the factors par_pctile, par_mean, and k_mean. Average silhouette width was examined to find the ideal number of clusters, which was found to be 2 as the graph peaks at 2. The results show weak correlations between the three variables. The correlations were 0.289 between par_mean and par_pctile, 0.227 between k_mean and par_pctile, and 0.187 between par_mean and k_mean. The final fit of the cluster solution was strong.</em></p>
+</div>
